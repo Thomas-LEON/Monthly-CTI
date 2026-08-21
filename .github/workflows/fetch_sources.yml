@@ -1,0 +1,38 @@
+name: Monthly Cyber Sources Fetcher
+
+on:
+  schedule:
+    # Tourne à 06:00 UTC le 1er jour de chaque mois
+    - cron: '0 6 1 * *'
+  workflow_dispatch: # Permet de lancer le script manuellement depuis GitHub
+
+permissions:
+  contents: write
+
+jobs:
+  run-fetcher:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run Fetcher Script
+        env:
+          SILOBREAKER_API_KEY: ${{ secrets.SILOBREAKER_API_KEY }}
+          SILOBREAKER_SHARED_KEY: ${{ secrets.SILOBREAKER_SHARED_KEY }}
+        run: |
+          python fetch_cyber_links.py
+
+      - name: Commit and Push output .md
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add CYBER-REPORT-SOURCES-*.md
+          git commit -m "chore: add monthly cyber sources for $(date -d 'last month' +'%B %Y')" || echo "No changes to commit"
+          git push
